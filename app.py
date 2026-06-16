@@ -4,7 +4,6 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
-from PIL import Image
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'reelix-super-secret-2026'
@@ -15,19 +14,20 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Klasör oluştur
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # ====================== MODELLER ======================
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True)
-    password = db.Column(db.String(200))
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
     bio = db.Column(db.Text, default="Merhaba, Reelix kullanıyorum!")
     is_admin = db.Column(db.Boolean, default=False)
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text)
     file = db.Column(db.String(200))
     is_video = db.Column(db.Boolean, default=False)
@@ -55,7 +55,7 @@ def register():
         user = User(username=username, password=generate_password_hash(password))
         db.session.add(user)
         db.session.commit()
-        flash('Kayıt başarılı! Giriş yap.')
+        flash('Kayıt başarılı! Giriş yapabilirsiniz.')
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -75,16 +75,15 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-# Post Yükleme
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
     if request.method == 'POST':
-        content = request.form['content']
-        file = request.files['file']
-        if file:
+        content = request.form.get('content', '')
+        file = request.files.get('file')
+        if file and file.filename:
             filename = file.filename
-            is_video = filename.lower().endswith(('.mp4', '.mov'))
+            is_video = filename.lower().endswith(('.mp4', '.mov', '.avi'))
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
@@ -95,7 +94,6 @@ def upload():
             return redirect(url_for('home'))
     return render_template('upload.html')
 
-# Admin Panel
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin_panel():
@@ -113,15 +111,21 @@ def admin_panel():
                 flash(f"{user.username} şifresi sıfırlandı → 123456")
             elif action == "make_admin":
                 user.is_admin = True
-                flash(f"{user.username} admin yapıldı")
+                flash(f"{user.username} admin yapıldı!")
         db.session.commit()
     return render_template('admin.html', users=users)
 
+# ====================== BAŞLATMA ======================
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        
+        # İlk admin hesabı
         if not User.query.filter_by(username='admin').first():
             admin = User(username='admin', password=generate_password_hash('admin123'), is_admin=True)
             db.session.add(admin)
             db.session.commit()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+            print("✅ Admin hesabı oluşturuldu: admin / admin123")
+    
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
