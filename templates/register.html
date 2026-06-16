@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Kayıt Ol</h2>
+    <form method="POST">
+        <input type="text" name="username" placeholder="Kullanıcı Adı" required><br><br>
+        <input type="password" name="password" placeholder="Şifre" required><br><br>
+        <button type="submit">Kayıt Ol</button>
+    </form>
+{% endblock %}
