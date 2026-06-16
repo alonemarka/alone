@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Yeni Paylaşım Yap</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <textarea name="content" placeholder="Ne düşünüyorsun?" rows="3"></textarea><br><br>
+        <input type="file" name="file" accept="image/*,video/*" required><br><br>
+        <button type="submit">Paylaş</button>
+    </form>
+{% endblock %}
